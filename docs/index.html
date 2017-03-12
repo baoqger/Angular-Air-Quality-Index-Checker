@@ -1,1 +1,192 @@
-try
+<!DOCTYPE html>
+<html lang="en" ng-app="App" ng-controller="MyCtrl">
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="css/bootstrap.min.css">
+<link rel="stylesheet" href="css/angular-chart.css">
+<title></title>
+<script type="text/javascript" src="js/jquery.min.js"></script>
+<script type="text/javascript" src="js/bootstrap.min.js"></script>
+<script type="text/javascript" src="js/lodash.js"></script>
+<script type="text/javascript" src="js/angular.min.js"></script>
+<script type="text/javascript" src = "js/zingchart.min.js" ></script>
+<script type="text/javascript" src = "js/zingchart-angularjs.js"></script>
+<script src="js/angular-route.min.js"></script>
+<script type="text/javascript" src="js/angular-simple-logger.min.js"></script>
+<script type="text/javascript" src="js/angular-google-maps.min.js"></script>
+
+<script src="js/controller.js"></script>
+<style>
+.black{
+    background-color:#000000;
+    height:400px;
+    color:#FFFFFF;
+  }
+  
+  .grey{
+      
+    background-color:#5E5E5E;
+	height:400px;
+	color:#FFFFFF;
+    }
+.angular-google-map-container { height: 450px; }
+    
+    .chart {
+        height:480px;
+    }
+    #historychart {
+        height:100%;
+    }
+    #chart-1 {
+        height:100%;
+    }
+</style>
+<script type="text/ng-template" id = "searchbox.html">
+	<div class="col-sm-2">
+    <div class="input-group">
+	<span class="input-group-addon glyphicon glyphicon-search"></span><input ng-model = "$parent.$parent.searchedCity" type="text" class="form-control" id="searchcity" placeholder = "Search City">
+	</div>
+	</div>
+</script>
+<script type="text/ng-template" id = "detailIndex.html">
+    <label class="{{labelType}}"> 
+	{{ targetCity + " : " + cityIndex + " @ " + datetime}} 
+	</label>
+</script>
+
+</head>
+<body>
+<nav class="navbar navbar-default" role="navigation">
+	<div class="navbar-header">
+		<button type="button"  class="navbar-toggle" data-toggle="collapse" data-target="#nav-toggle">
+			<span class="icon-bar"></span>
+			<span class="icon-bar"></span>
+			<span class="icon-bar"></span>
+		</button>
+		<label class="navbar-brand" >Air Quality Monitor</label>
+	</div>
+	<div class="collapse navbar-collapse" id="nav-toggle">
+		<ul class="nav navbar-nav">
+
+		</ul>
+	</div>
+</nav>
+
+<div class="container">
+	<form class="form-horizontal" role="form">
+		<div class="form-group">
+			<label class="control-label col-lg-2" for="candidatecity">Cities</label>
+			<div class="col-lg-2">
+				<select class="form-control" ng-options="city for city in avaiablecities" ng-model="selectedCity" id="candidatecity" ></select>
+			</div>
+
+			<div ng-if="selectedCity=='Others'" ng-include="'searchbox.html'"></div>		
+			<label class="control-label col-lg-2" for="period">Time Period</label>
+			<div class="col-lg-2">
+				<select class="form-control"  ng-options="period for period in avaiableperiod" ng-model="selectedperiod" id="period"></select>
+			</div>
+			
+			<div class="col-lg-2">
+				<button type="submit" class="btn btn-default" ng-click="clickSendRequest()">Get Data</button>
+			</div>
+		</div>
+		
+	</form>
+
+	<div class="row">
+		<div class="col-lg-6 col-lg-offset-2">
+			<h4><span class="label label-primary">History Air Quality Overview</span></h4>
+			<div class="chart panel panel-primary">
+				<div id="historychart">
+					<div zingchart id="chart-1" zc-json="myJson" zc-width="100%" zc-height="100%" zc-render="myRender"></div>
+				</div>
+			</div>
+		</div>
+		<div class="col-lg-4">
+			<h4><span class="label label-primary">Location</span></h4>
+			<div class="panel panel-primary">
+				
+				<div class="panel-body">
+					<ui-gmap-google-map center='map.center' zoom='map.zoom'>
+						<div  ui-gmap-marker  coords="marker.coords"  idkey="marker.id"></div>
+					</ui-gmap-google-map>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-lg-10 col-lg-offset-2">
+			<h4><span class="label label-primary">Detailed Air Quality Information</span></h4>
+			<div class="panel panel-primary">
+				<div class="panel-body">
+					<div class="row">
+						<div class="col-lg-4 ">
+							<table class="table table-condensed table-striped">
+								<thead>
+								<tr>
+									<th>Air Quality Index</th>
+									<th>Air Quality Level</th>
+								</tr>
+								</thead>
+								<tbody>
+								<tr class="{{tableTypeRow1}}">
+									<td>100 - 80</td>
+									<td>Excellent Air Quality</td>
+								</tr>
+								<tr class="{{tableTypeRow2}}">
+									<td>79 - 60</td>
+									<td>Fair Air Quality</td>
+								</tr>
+								<tr class="{{tableTypeRow3}}">
+									<td>59 - 40</td>
+									<td>Moderate Air Quality</td>
+								</tr>
+								<tr class="{{tableTypeRow4}}">
+									<td>39 - 20</td>
+									<td>Low Air Quality</td>
+								</tr>
+								<tr class="{{tableTypeRow5}}">
+									<td>19 - 0</td>
+									<td>Poor Air Quality</td>
+								</tr>
+								</tbody>
+							</table>
+							<div ng-if="selectedShow" ng-include="'detailIndex.html'"></div>
+						</div>
+						<div class="col-lg-offset-1 col-lg-7">
+							<ul class="list-group">
+								<div class="list-group-item {{contextualType}}">
+									<h4 class="list-group-item-heading"><span class="glyphicon glyphicon-eye-open"></span> Pollution Analysis </h4>
+									<ul ng-show = "aqi_status=='OK'">
+										<li class="list-group-item-text" >{{pollution.dominant_pollutant}}</li>
+										<li class="list-group-item-text">{{pollution.effect}}</li>
+									</ul>
+									<ul ng-show = "aqi_status!='OK'">
+										<li class="list-group-item-text" >Dominant pollution type and the potential effect will be analysed here.</li>
+									</ul>
+
+								</div>
+								<div class="list-group-item {{contextualType}}">
+									<h4 class="list-group-item-heading"><span class="glyphicon glyphicon-hand-right"></span> Recommendation </h4>
+									<ul ng-show = "aqi_status=='OK'">
+										<li class="list-group-item-text" >{{recommendation.sport}}</li>
+										<li class="list-group-item-text" >{{recommendation.health}}</li>
+										<li class="list-group-item-text" >{{recommendation.children}}</li>
+									</ul>
+									<ul ng-show = "aqi_status!='OK'">
+										<li class="list-group-item-text" >Special recommendations for doing sports, health and children will be given here .</li>
+									</ul>									
+								</div>
+							</ul>
+						</div>
+						
+					</div>
+				</div>
+			</div>
+		</div>		
+	</div>
+</div>
+
+
+</body>
+</html>
